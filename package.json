@@ -1,0 +1,30 @@
+{
+  "name": "nvault",
+  "version": "1.0.0",
+  "description": "NodeJS based vault with TOTP",
+  "main": "index.js",
+  "repository": "https://github.com/Sfinx/nvault.git",
+  "author": "Rus V. Brushkoff",
+  "license": "MIT",
+  "dependencies": {
+    "node-localstorage": "^2.1.6",
+    "otpauth": "^6.2.4",
+    "qrcode-terminal": "^0.12.0",
+    "restify": "^8.5.1"
+  },
+  "scripts": {
+    "i": "rm -rf nvault.db",
+    "b": "NODE_ENV=production webpack",
+    "r": "node dist/index.js",
+    "br": "yarn b; yarn r",
+    "ibr": "yarn i; yarn br"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.13.15",
+    "@babel/preset-env": "^7.13.15",
+    "babel-loader": "^8.2.2",
+    "webpack": "^5.31.2",
+    "webpack-cli": "^4.6.0",
+    "webpack-node-externals": "^2.5.2"
+  }
+}
