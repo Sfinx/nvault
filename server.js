@@ -38,8 +38,6 @@ if (!users?.root) {
   qrcode.generate(uri, { small: true })
 } else
     rootOTP = new OTPAuth.TOTP({
-        issuer: 'nvault',
-        label: 'Root Token',
         algorithm: 'SHA1',
         digits: 6,
         period: 30,
@@ -64,14 +62,14 @@ let getSecret = (req, res, next) => {
      token: totpToken,
      window: 1
     })  
-    let userAllowedRealm = users[user].realm
-    if (token != totpToken || !secrets[userAllowedRealm]?.[secretID])
+    if (token != totpToken) {
+      console.log('getSecret: Wrong token for', user, token, totpToken)
       res.send(503)
-    else
+    } else
       //res.send({
       //  secret: secrets[userAllowedRealm].[secretID]
       //})
-      res.send(secrets[userAllowedRealm].[secretID])
+      res.send(secrets[user].[secretID])
   }
   res.end()
   return next(false)
@@ -79,8 +77,7 @@ let getSecret = (req, res, next) => {
 
 let createUser = (req, res, next) => {
   let user = req.headers['token-user']
-  let realm = req.headers['secrets-realm']
-  if (!user?.length || !realm?.length)
+  if (!user?.length)
     res.send(503)
   else {
     let secret = randomBase32(32)
@@ -93,11 +90,10 @@ let createUser = (req, res, next) => {
 	secret
     })
     users[user] = {
-      realm,
       secret
     }
    let uri = otp.toString()
-   console.log(`Created user ${user}@${realm} with token: ${users[user].secret}, URI: ${uri}`)
+   console.log(`Created user ${user} with token: ${users[user].secret}, URI: ${uri}`)
    qrcode.generate(uri, { small: true })   
    updateDb('users')
   }
@@ -108,21 +104,20 @@ let createUser = (req, res, next) => {
 let setSecret = (req, res, next) => {
   let secretID = req.headers['secret-id']
   let secret = req.headers['secret']
-  let realm = req.headers['secrets-realm']
   let rootToken = rootOTP.generate()
   let totpToken = req.headers['totp-token']
   let delta = rootOTP.validate({
    token: totpToken,
    window: 1
   })
-  if (req.headers['token-user'] != 'root' || totpToken != rootToken || !secretID?.length || !secret?.length || !realm?.length) {
+  if (req.headers['token-user'] != 'root' || totpToken != rootToken || !secretID?.length || !secret?.length) {
     console.log('Invalid root OTP token !', totpToken, rootToken)
     res.send(503)
   } else {
-    if (!secrets[realm])
-      secrets[realm] = {}
-    secrets[realm].[secretID] = secret
-    console.log(`Secret '${secret}' with ID '${secretID}@${realm}' is set`)
+    if (!secrets[user])
+      secrets[user] = {}
+    secrets[user].[secretID] = secret
+    console.log(`Secret '${secret}' with ID '${secretID}' is set for '${user}'`)
     updateDb('secrets')
   }
   res.end()
@@ -141,6 +136,7 @@ let server = restify.createServer(options)
 server.use(restify.plugins.bodyParser({
  mapParams: true
 }))
+
 server.use(restify.plugins.acceptParser(server.acceptable))
 
 server.post('/createUser', createUser)
